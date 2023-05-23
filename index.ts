@@ -23,17 +23,18 @@ async function run() {
   const database = new sqlite3.Database("database.sqlite");
 
   const queries = fs.readdirSync("./queries");
+  const skippedFiles = [];
   for (const file of queries) {
-    console.log(`========== ${file} ==========`);
     const content = fs.readFileSync(`./queries/${file}`).toString("utf-8");
     const uncommentedLines = content
       .split(/\r?\n/)
       .filter((line) => line.trim()[0] !== "#");
     const noQuery = !uncommentedLines.find((line) => line.trim() !== "");
     if (noQuery === true) {
-      console.warn(`File ${file} has been skipped because it seems empty`);
+      skippedFiles.push(file);
       continue;
     }
+    console.log(`========== ${file} ==========`);
     const sqlLine = uncommentedLines.map((line) => line.trim()).join(" ");
     const queries = sqlLine.split(";");
     for (const query of queries) {
@@ -41,16 +42,25 @@ async function run() {
         continue;
       }
       try {
-        console.log(`Executing: ${query}`);
+        console.log(`💻 Executing: ${query}`);
         const result = await execQuery(database, query);
-        console.log(`Query has succeed with the following output:`);
+        console.log(`🥳 Query has succeed with the following output:`);
         console.log(JSON.stringify(result, null, 4));
       } catch (e: any) {
-        console.error(`Query has failed with the following error:`);
+        console.error(`❌ Query has failed with the following error:`);
         console.error(e.message);
         console.error(JSON.stringify(e, null, 4));
       }
     }
+  }
+  if (skippedFiles.length) {
+    console.log(
+      `⏩ ${
+        skippedFiles.length
+      } files has been skipped because they seem empty (${skippedFiles.join(
+        ", "
+      )})`
+    );
   }
 }
 
